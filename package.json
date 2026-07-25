@@ -14,8 +14,9 @@
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "detect": "tsx scripts/testDetection.ts",
     "icon": "node scripts/gen-icon.mjs",
-    "dist": "electron-vite build && electron-builder --win --config electron-builder.config.js",
-    "dist:dir": "electron-vite build && electron-builder --win --dir --config electron-builder.config.js"
+    "fetch:legendary": "node scripts/fetch-legendary.mjs",
+    "dist": "npm run fetch:legendary && electron-vite build && electron-builder --win --config electron-builder.config.js",
+    "dist:dir": "npm run fetch:legendary && electron-vite build && electron-builder --win --dir --config electron-builder.config.js"
   },
   "dependencies": {
     "@node-steam/vdf": "^2.2.0",

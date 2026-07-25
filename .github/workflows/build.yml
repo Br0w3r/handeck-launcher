@@ -30,6 +30,9 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Bundle legendary.exe
+        run: npm run fetch:legendary
+
       - name: Build (electron-vite)
         run: npm run build
 

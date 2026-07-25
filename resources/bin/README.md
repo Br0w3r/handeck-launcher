@@ -1,14 +1,24 @@
 # resources/bin — binarios empaquetados
 
-Coloca aquí **`legendary.exe`** (Windows) para que se incluya dentro del
-instalador. La app lo detecta automáticamente vía `legendaryBin()` en
-`process.resourcesPath/bin/legendary.exe`.
+Aquí va **`legendary.exe`** (Windows) para que se incluya dentro del instalador.
+La app lo detecta automáticamente vía `legendaryBin()` en
+`process.resourcesPath/bin/legendary.exe`, así que el usuario final **no necesita
+instalar legendary por su cuenta**.
 
-Descarga el `.exe` desde las releases oficiales:
-https://github.com/derrod/legendary/releases
+## Se descarga automáticamente
 
-Si NO lo pones aquí, la app usará el `legendary` que esté en el PATH del sistema.
-En ese caso, el usuario debe instalarlo (`pip install legendary-gl`) y autenticar
-Epic la primera vez con `legendary auth`.
+No se versiona en el repo (está en `.gitignore`). Se baja en cada build:
 
-> Este README es sólo documentación; el `.exe` no se versiona en el repo.
+```bash
+npm run fetch:legendary   # → resources/bin/legendary.exe (v fija en el script)
+```
+
+- `npm run dist` ya lo ejecuta antes de empaquetar.
+- El CI (`.github/workflows/build.yml`) también lo baja antes de empaquetar.
+- Versión fija en `scripts/fetch-legendary.mjs` (`LEGENDARY_VERSION`, o env var).
+
+Releases oficiales: https://github.com/legendary-gl/legendary/releases
+
+> legendary es GPL-3.0: se distribuye como ejecutable separado que la app invoca
+> por subproceso (agregación, no enlace). Conviene incluir su licencia/atribución
+> en el instalador final.
