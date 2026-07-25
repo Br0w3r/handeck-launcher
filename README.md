@@ -13,7 +13,29 @@ npm run dev        # arranca el launcher en modo desarrollo (main + renderer)
 npm run build      # compila main, preload y renderer a out/
 npm run typecheck  # verifica tipos de main y renderer
 npm run detect     # prueba la detección de juegos SIN abrir Electron
+npm run icon       # regenera resources/icon.ico
+npm run dist       # genera el instalador NSIS .exe en dist/ (Windows)
 ```
+
+## Empaquetado (Paso 8)
+
+El instalador `.exe` se genera con **electron-builder** (target NSIS, x64):
+
+```bash
+npm run dist    # → dist/HanDeck Launcher-Setup-<version>.exe
+```
+
+- `legendary.exe` se empaqueta automáticamente si lo colocas en
+  `resources/bin/` (ver `resources/bin/README.md`).
+- El instalador usa idiomas `es_ES` y `en_US` (es_MX rompe NSIS por tener la
+  tabla de traducciones incompleta).
+
+### CI — GitHub Actions
+
+`.github/workflows/build.yml` compila el `.exe` en un runner **windows-latest**
+al hacer push a `main`, al publicar un tag `vX.Y.Z`, o manualmente
+(_workflow_dispatch_). El instalador queda como _artifact_ y, si es un tag, se
+adjunta a una GitHub Release.
 
 ## Estado por pasos
 
@@ -24,7 +46,7 @@ npm run detect     # prueba la detección de juegos SIN abrir Electron
 - [x] **Paso 5** — UI PS5-like (carousel, hero, cards)
 - [x] **Paso 6** — LaunchOverlay + flujo verify/launch
 - [x] **Paso 7** — Ciclo de vida (destruir/recrear ventana al lanzar/cerrar juego)
-- [ ] Paso 8 — electron-builder + empaquetado
+- [x] **Paso 8** — electron-builder + empaquetado (NSIS) + CI en GitHub Actions
 
 ## Detección de juegos (Paso 1)
 
