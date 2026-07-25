@@ -1,0 +1,133 @@
+/* Layout PS5 (Paso 5): hero a pantalla completa + panel de título arriba +
+   carousel abajo. Los componentes (GameHero/GameCard/GameCarousel) traen su
+   propio CSS; aquí va el contenedor, el panel de info y los overlays. */
+
+.app {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ── Panel de título/metadata del juego seleccionado (arriba a la izquierda) ── */
+.app__info {
+  position: absolute;
+  top: 8vh;
+  left: 6vw;
+  right: 6vw;
+  max-width: 60%;
+}
+
+.app__brand {
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+}
+
+.app__title {
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-weight: 800;
+  line-height: 1.05;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+}
+
+.app__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-top: 1rem;
+  color: var(--text-secondary);
+}
+
+.app__meta-badge {
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.app__meta-badge--steam {
+  background: #1b2838;
+  color: #66c0f4;
+}
+
+.app__meta-badge--epic {
+  background: #2a2a2a;
+  color: #ffffff;
+}
+
+/* Contador de biblioteca, arriba a la derecha. */
+.app__count {
+  position: absolute;
+  top: 8vh;
+  right: 6vw;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+/* ── Overlays centrados (carga, error, vacío) ── */
+.app__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  text-align: center;
+  padding: 0 10vw;
+}
+
+.app__overlay--error {
+  color: #ff6b6b;
+}
+
+.app__overlay button {
+  padding: 0.5rem 1.2rem;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+.app__status {
+  color: var(--text-secondary);
+  font-size: 1.2rem;
+}
+
+/* ── Toasts (aviso legendary, confirmación de lanzamiento) ── */
+.app__toast {
+  position: absolute;
+  top: 3vh;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.7rem 1.2rem;
+  border-radius: 10px;
+  font-weight: 600;
+  z-index: 20;
+  max-width: 80vw;
+}
+
+.app__toast--launch {
+  background: rgba(0, 112, 209, 0.9);
+  color: #fff;
+  box-shadow: 0 8px 30px rgba(0, 112, 209, 0.5);
+}
+
+.app__toast--warning {
+  background: rgba(255, 193, 7, 0.14);
+  border: 1px solid rgba(255, 193, 7, 0.5);
+  color: #ffd166;
+}
+
+.app__toast code {
+  background: rgba(0, 0, 0, 0.35);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+}

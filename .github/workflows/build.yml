@@ -1,0 +1,51 @@
+name: Build Windows Installer
+
+# Compila el instalador NSIS (.exe) en un runner Windows real.
+# Se dispara manualmente, al hacer push a main, o al publicar un tag vX.Y.Z.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+permissions:
+  contents: write # necesario para crear la Release al pushear un tag
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build (electron-vite)
+        run: npm run build
+
+      - name: Package installer (electron-builder)
+        run: npx electron-builder --win --config electron-builder.config.js --publish never
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: handeck-launcher-windows
+          path: dist/*.exe
+          if-no-files-found: error
+
+      # Al pushear un tag vX.Y.Z, adjunta el .exe a una GitHub Release.
+      - name: Publish Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.exe

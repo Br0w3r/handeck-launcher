@@ -1,0 +1,14 @@
+:root {
+  /* Paleta base tipo PS5 (se ampliará en el Paso 5). */
+  --bg-primary: #0a0a0f;
+  --bg-card: #1a1a2e;
+  --accent: #0070d1; /* azul PlayStation */
+  --text-primary: #ffffff;
+  --text-secondary: #8899aa;
+
+  --card-width: 190px;
+  --card-height: 265px;
+  --card-gap: 22px;
+  --card-selected-scale: 1.08;
+  --transition: 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}

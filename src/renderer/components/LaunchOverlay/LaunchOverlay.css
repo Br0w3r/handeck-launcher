@@ -1,0 +1,99 @@
+.launch-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6, 6, 10, 0.82);
+  backdrop-filter: blur(10px);
+  animation: overlay-in 200ms ease;
+}
+
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.launch-overlay__panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 3rem 4rem;
+  text-align: center;
+}
+
+.launch-overlay__title {
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  font-weight: 800;
+}
+
+/* Spinner circular. Al terminar (running) se transforma en un check. */
+.launch-overlay__spinner {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 5px solid rgba(255, 255, 255, 0.15);
+  border-top-color: var(--accent);
+  animation: spin 800ms linear infinite;
+}
+
+.launch-overlay__spinner--done {
+  animation: none;
+  border-color: #2ecc71;
+  position: relative;
+}
+
+.launch-overlay__spinner--done::after {
+  content: '';
+  position: absolute;
+  left: 22px;
+  top: 12px;
+  width: 14px;
+  height: 28px;
+  border: solid #2ecc71;
+  border-width: 0 5px 5px 0;
+  transform: rotate(45deg);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.launch-overlay__status {
+  font-size: 1.35rem;
+  color: var(--text-primary);
+}
+
+.launch-overlay__hint {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.launch-overlay__error {
+  color: #ff6b6b;
+  font-size: 1.15rem;
+  max-width: 34rem;
+}
+
+.launch-overlay__actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.launch-overlay__btn {
+  padding: 0.6rem 1.4rem;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-weight: 600;
+}

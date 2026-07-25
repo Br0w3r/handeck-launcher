@@ -1,0 +1,23 @@
+.carousel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 5.5rem;
+  overflow: hidden;
+  /* padding vertical para que el glow/scale de la card seleccionada no se recorte. */
+  padding: 2rem 0;
+}
+
+.carousel__track {
+  display: flex;
+  gap: var(--card-gap);
+  /* Centra la card seleccionada: mueve el track para que el centro de la card
+     índice --i quede en el centro del viewport (50vw). */
+  transform: translateX(
+    calc(
+      50vw - var(--i) * (var(--card-width) + var(--card-gap)) - var(--card-width) / 2
+    )
+  );
+  transition: transform var(--transition);
+  will-change: transform;
+}
