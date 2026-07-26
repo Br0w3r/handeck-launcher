@@ -18,5 +18,10 @@ for (const game of result.games) {
   console.log(`  • [${game.platform}] ${game.title} (id: ${game.id})`)
   console.log(`      ↳ ${game.installPath}`)
   if (game.executableName) console.log(`      ↳ exe: ${game.executableName}`)
+  if (game.updateState && game.updateState !== 'ready') {
+    const pct =
+      game.updateProgress != null ? ` (${Math.round(game.updateProgress * 100)}%)` : ''
+    console.log(`      ↳ estado: ${game.updateState}${pct}`)
+  }
 }
 console.log('──────────────────────────────────────────────────────\n')

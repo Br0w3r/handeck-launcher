@@ -105,6 +105,106 @@ interface EpicManifest {
   DisplayName?: string
   InstallLocation?: string
   LaunchExecutable?: string
+  /** Categorías del artículo: los juegos reales incluyen "games". */
+  AppCategories?: string[]
+  /** Si es un contenido/DLC, apunta al juego padre (p.ej. Fortnite). */
+  MainGameAppName?: string
+  /** Versión/build instalado ahora mismo (para comparar con la última online). */
+  AppVersionString?: string
+  /** Namespace del catálogo (para construir el deep-link del Epic Launcher). */
+  CatalogNamespace?: string
+  /** Id del artículo del catálogo (para el deep-link). */
+  CatalogItemId?: string
+}
+
+/**
+ * Identificador para el deep-link del Epic Launcher: `namespace:catalogId:appName`
+ * (formato actual del protocolo com.epicgames.launcher://apps/…). Devuelve null
+ * si no se encuentra el juego o le faltan los ids de catálogo.
+ */
+export function getEpicAppLaunchId(appName: string): string | null {
+  const manifestsDir = epicManifestsPath()
+  if (!manifestsDir || !existsSync(manifestsDir)) return null
+
+  let entries: string[]
+  try {
+    entries = readdirSync(manifestsDir)
+  } catch {
+    return null
+  }
+
+  for (const entry of entries) {
+    if (!entry.endsWith('.item')) continue
+    try {
+      const manifest = JSON.parse(
+        readFileSync(join(manifestsDir, entry), 'utf-8')
+      ) as EpicManifest
+      if (manifest.AppName !== appName) continue
+      if (manifest.CatalogNamespace && manifest.CatalogItemId) {
+        return `${manifest.CatalogNamespace}:${manifest.CatalogItemId}:${manifest.AppName}`
+      }
+      return null
+    } catch {
+      // siguiente
+    }
+  }
+
+  return null
+}
+
+/**
+ * Versión instalada de cada juego de Epic según sus manifests `.item`
+ * (`AppVersionString`). Se compara con la última versión online (legendary info)
+ * para saber si hay actualización pendiente. Mapa app_name → versión.
+ */
+export function getEpicInstalledVersions(): Map<string, string> {
+  const versions = new Map<string, string>()
+  const manifestsDir = epicManifestsPath()
+  if (!manifestsDir || !existsSync(manifestsDir)) return versions
+
+  let entries: string[]
+  try {
+    entries = readdirSync(manifestsDir)
+  } catch {
+    return versions
+  }
+
+  for (const entry of entries) {
+    if (!entry.endsWith('.item')) continue
+    try {
+      const manifest = JSON.parse(
+        readFileSync(join(manifestsDir, entry), 'utf-8')
+      ) as EpicManifest
+      if (!manifest.AppName || !isRealEpicGame(manifest)) continue
+      if (manifest.AppVersionString) {
+        versions.set(manifest.AppName, manifest.AppVersionString)
+      }
+    } catch {
+      // Ignorar manifests corruptos.
+    }
+  }
+
+  return versions
+}
+
+/**
+ * ¿Este manifest es un juego "de verdad" y no basura?
+ *
+ * Epic mezcla en la misma carpeta de manifests:
+ *  - Juegos reales     → AppCategories incluye "games" (GTA V, Fortnite, PUBG…).
+ *  - Apps/software      → sólo "applications"/"software" (p.ej. Discord).
+ *  - Contenido de un juego → AppCategories ["applications"] y MainGameAppName
+ *    apuntando al padre (Fortnite_JunoContent, Fortnite_StWContent → "Fortnite").
+ *
+ * Nos quedamos sólo con los que son "games" y NO son contenido hijo de otro.
+ */
+function isRealEpicGame(manifest: EpicManifest): boolean {
+  const categories = manifest.AppCategories ?? []
+  if (!categories.includes('games')) return false
+  // Excluir DLC/contenido que cuelga de un juego padre.
+  const main = manifest.MainGameAppName
+  if (main && main !== manifest.AppName) return false
+  return true
 }
 
 /** Detecta juegos leyendo los manifests .item del Epic Games Launcher. */
@@ -131,6 +231,7 @@ function getGamesFromManifests(): Game[] {
       ) as EpicManifest
 
       if (!manifest.AppName || !manifest.DisplayName) continue
+      if (!isRealEpicGame(manifest)) continue
       if (seen.has(manifest.AppName)) continue
       seen.add(manifest.AppName)
 
@@ -150,20 +251,31 @@ function getGamesFromManifests(): Game[] {
 }
 
 /**
- * Detecta todos los juegos de Epic instalados.
- * Prefiere legendary; si no está disponible, cae a los manifests oficiales.
+ * Detecta todos los juegos de Epic instalados uniendo ambas fuentes:
+ * legendary (da el ejecutable de lanzamiento) + los manifests del Epic Launcher.
+ *
+ * Se unen (no "una u otra") para que un estado PARCIAL de legendary — p.ej. sólo
+ * algunos juegos importados — no oculte el resto que sólo conoce el Epic Launcher.
+ * Se deduplica por app_name, dando prioridad a la entrada de legendary.
  */
 export function getEpicGames(legendaryPath?: string): Game[] {
+  const byId = new Map<string, Game>()
+
   if (isLegendaryInstalled(legendaryPath)) {
-    const games = getGamesFromLegendary(legendaryPath)
-    if (games.length > 0) return games
+    for (const game of getGamesFromLegendary(legendaryPath)) {
+      byId.set(game.id, game)
+    }
   }
 
-  const manifestGames = getGamesFromManifests()
-  if (manifestGames.length === 0) {
+  for (const game of getGamesFromManifests()) {
+    if (!byId.has(game.id)) byId.set(game.id, game)
+  }
+
+  const games = [...byId.values()]
+  if (games.length === 0) {
     console.info(
-      '[epic] Sin juegos de Epic detectados (¿legendary instalado y autenticado?).'
+      '[epic] Sin juegos de Epic detectados (¿Epic Launcher o legendary con sesión?).'
     )
   }
-  return manifestGames
+  return games
 }

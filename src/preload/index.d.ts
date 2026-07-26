@@ -8,7 +8,14 @@ export type {
   LaunchStatus,
   LaunchProgress,
   ArtworkUrls,
-  HandeckApi
+  UpdateState,
+  UpdatePhase,
+  UpdateInfo,
+  HandeckApi,
+  AuthResult,
+  EpicStatus,
+  AppSettings,
+  SteamAction
 } from './index'
 
 declare global {

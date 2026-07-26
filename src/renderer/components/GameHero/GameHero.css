@@ -6,26 +6,37 @@
   overflow: hidden;
 }
 
-/* Cada capa entra con un fade suave (crossfade al cambiar de juego). */
+/* Cada capa entra con un fade suave (crossfade al cambiar de juego) y deriva
+   muy lentamente para dar sensación de vida, como el fondo de PS5. */
 .game-hero__layer {
   position: absolute;
   inset: 0;
   background-size: cover;
   background-position: center;
   transform: scale(1.08);
-  animation: hero-fade-in 320ms ease forwards;
+  opacity: 0;
+  animation:
+    hero-fade-in 420ms ease forwards,
+    hero-drift 32s ease-in-out 420ms infinite alternate;
 }
 
 @keyframes hero-fade-in {
-  from {
-    opacity: 0;
-  }
   to {
     opacity: 1;
   }
 }
 
-/* Oscurecido general + degradado inferior para que las cards se lean bien. */
+@keyframes hero-drift {
+  from {
+    transform: scale(1.08) translate3d(0, 0, 0);
+  }
+  to {
+    transform: scale(1.14) translate3d(-1.5%, -1%, 0);
+  }
+}
+
+/* Scrim en varias capas: degradado inferior (para las cards), degradado lateral
+   izquierdo (para el título) y viñeta suave en los bordes. */
 .game-hero__scrim {
   position: absolute;
   inset: 0;
@@ -33,8 +44,19 @@
     linear-gradient(
       to top,
       var(--bg-primary) 0%,
-      rgba(10, 10, 15, 0.75) 28%,
-      rgba(10, 10, 15, 0.35) 60%,
-      rgba(10, 10, 15, 0.55) 100%
+      rgba(7, 7, 11, 0.72) 30%,
+      rgba(7, 7, 11, 0.28) 58%,
+      rgba(7, 7, 11, 0.5) 100%
+    ),
+    linear-gradient(
+      to right,
+      rgba(7, 7, 11, 0.8) 0%,
+      rgba(7, 7, 11, 0.35) 32%,
+      rgba(7, 7, 11, 0) 60%
+    ),
+    radial-gradient(
+      120% 90% at 50% 45%,
+      rgba(0, 0, 0, 0) 55%,
+      rgba(0, 0, 0, 0.45) 100%
     );
 }

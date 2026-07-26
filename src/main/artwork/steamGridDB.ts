@@ -10,17 +10,30 @@ import { getStore } from '../store'
  * hero. Para Steam se puede consultar directamente por appId; para el resto se
  * busca el juego por nombre y luego se piden sus imágenes.
  *
- * Requiere una API key gratuita (registro en steamgriddb.com). Se lee de la
- * variable de entorno STEAMGRIDDB_API_KEY o de la config persistente. Sin key,
- * la resolución devuelve { grid: null, hero: null } de forma silenciosa.
+ * Requiere una API key gratuita (registro en steamgriddb.com). Orden de
+ * resolución: variable de entorno STEAMGRIDDB_API_KEY → key personalizada en la
+ * config → key por defecto que se distribuye con el launcher. Así el artwork
+ * funciona "de fábrica" para todos, pero un usuario puede poner la suya.
  */
 
 const API_BASE = 'https://www.steamgriddb.com/api/v2'
 // Dimensiones verticales tipo PS5 preferidas para las portadas.
 const GRID_DIMENSIONS = '600x900,342x482,660x930'
 
+/**
+ * Key por defecto embebida en el launcher (solo lectura de artwork, gratuita).
+ * Cualquiera puede sobreescribirla con la suya desde Ajustes o la env var.
+ * Nota: al distribuirse en el .exe es extraíble; es aceptable para una key de
+ * artwork de solo lectura y con límite de tasa.
+ */
+export const DEFAULT_SGDB_API_KEY = '28698478e188bd0bf4a85c6863969e00'
+
 export function getApiKey(): string {
-  return process.env['STEAMGRIDDB_API_KEY'] || getStore().get('steamGridDbApiKey') || ''
+  return (
+    process.env['STEAMGRIDDB_API_KEY'] ||
+    getStore().get('steamGridDbApiKey') ||
+    DEFAULT_SGDB_API_KEY
+  )
 }
 
 export function hasApiKey(): boolean {

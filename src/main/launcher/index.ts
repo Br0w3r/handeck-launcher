@@ -3,6 +3,7 @@ import { spawn, type ChildProcess } from 'node:child_process'
 import type { Game, LaunchProgress, LaunchStatus } from '../games/types'
 import { launchEpic } from './epicLauncher'
 import { launchSteam } from './steamLauncher'
+import { launchUbisoft } from './ubisoftLauncher'
 
 /**
  * Orquestador del flujo verify + launch. Delega en epicLauncher/steamLauncher y
@@ -83,6 +84,8 @@ export async function launchGame(game: Game, emit: LaunchEmit): Promise<boolean>
   try {
     if (game.platform === 'epic') {
       await launchEpic(game, ctx)
+    } else if (game.platform === 'ubisoft') {
+      await launchUbisoft(game, ctx)
     } else {
       await launchSteam(game, ctx)
     }

@@ -1,13 +1,18 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import { ControlHints } from './components/ControlHints/ControlHints'
+import type { Game } from '../preload'
+import { ActionMenu } from './components/ActionMenu/ActionMenu'
+import { ControlHints, triggerLabels } from './components/ControlHints/ControlHints'
+import { FilterTabs, type LibraryFilter } from './components/FilterTabs/FilterTabs'
 import { GameCarousel } from './components/GameCarousel/GameCarousel'
 import { GameHero } from './components/GameHero/GameHero'
 import { LaunchOverlay } from './components/LaunchOverlay/LaunchOverlay'
+import { SettingsPanel } from './components/SettingsPanel/SettingsPanel'
 import { gameKey, useArtwork } from './hooks/useArtwork'
 import { useGamepad } from './hooks/useGamepad'
 import { useGames } from './hooks/useGames'
 import { useLaunch } from './hooks/useLaunch'
+import { updateLabel, useUpdateStates } from './hooks/useUpdateStates'
 import './styles/library.css'
 
 /**
@@ -22,13 +27,27 @@ export default function App(): JSX.Element {
   const launch = useLaunch()
   const [legendaryAuth, setLegendaryAuth] = useState<boolean | null>(null)
   const [justReturned, setJustReturned] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [actionMenuOpen, setActionMenuOpen] = useState(false)
 
-  useEffect(() => {
+  const refreshLegendaryAuth = useCallback(() => {
     window.handeck
       ?.isLegendaryAuthenticated()
       .then(setLegendaryAuth)
       .catch(() => setLegendaryAuth(false))
   }, [])
+
+  useEffect(() => {
+    refreshLegendaryAuth()
+  }, [refreshLegendaryAuth])
+
+  // Al cerrar Ajustes: refrescar estado de Epic y recargar la biblioteca
+  // (por si se acaba de conectar/desconectar la cuenta).
+  const closeSettings = useCallback(() => {
+    setSettingsOpen(false)
+    refreshLegendaryAuth()
+    reload()
+  }, [refreshLegendaryAuth, reload])
 
   // El juego se cerró y el launcher volvió (ventana recreada por el main).
   useEffect(() => {
@@ -48,6 +67,35 @@ export default function App(): JSX.Element {
 
   const launching = launch.game !== null
 
+  const hasLibrary = !loading && !error && games.length > 0
+
+  // Estado de actualización en vivo (fs.watch) — sólo cuando hay biblioteca.
+  const updateStates = useUpdateStates(hasLibrary)
+
+  // Filtro activo (se mueve con los gatillos): Instalados / Actualizaciones.
+  const [filter, setFilter] = useState<LibraryFilter>('installed')
+
+  // Lista visible según el filtro (sin importar la tienda):
+  //  • Instalados     → todos, orden alfabético.
+  //  • Actualizaciones → sólo los que se actualizan o están pendientes
+  //    (actualizándose primero), orden alfabético dentro de cada grupo.
+  const visibleGames = useMemo(() => {
+    if (filter === 'updates') {
+      return games
+        .filter((g) => {
+          const state = updateStates[gameKey(g)]?.updateState
+          return state === 'updating' || state === 'update-pending'
+        })
+        .sort((a, b) => {
+          const rank = (g: Game): number =>
+            updateStates[gameKey(g)]?.updateState === 'updating' ? 0 : 1
+          const diff = rank(a) - rank(b)
+          return diff !== 0 ? diff : a.title.localeCompare(b.title)
+        })
+    }
+    return [...games].sort((a, b) => a.title.localeCompare(b.title))
+  }, [games, updateStates, filter])
+
   const handleConfirm = useCallback(
     (index: number) => {
       // Durante el overlay, A reintenta si hubo error; si no, ignora.
@@ -55,22 +103,36 @@ export default function App(): JSX.Element {
         if (launch.status === 'error') launch.retry()
         return
       }
-      const game = games[index]
+      const game = visibleGames[index]
       if (game) launch.launch(game)
     },
-    [games, launching, launch]
+    [visibleGames, launching, launch]
   )
 
   const handleBack = useCallback(() => {
     if (launching) launch.cancel()
   }, [launching, launch])
 
-  const { selectedIndex, connected } = useGamepad({
-    itemCount: games.length,
+  const { selectedIndex, setSelectedIndex, connected, layout } = useGamepad({
+    itemCount: visibleGames.length,
     onConfirm: handleConfirm,
     onBack: handleBack,
-    enabled: !loading && !error && games.length > 0
+    onMenu: () => setSettingsOpen(true),
+    // X abre el menú de acciones del juego enfocado (salvo durante un lanzamiento).
+    onAction: () => {
+      if (!launching) setActionMenuOpen(true)
+    },
+    // Gatillos: cambian de filtro (izq → Instalados, der → Actualizaciones).
+    onTriggerLeft: () => setFilter('installed'),
+    onTriggerRight: () => setFilter('updates'),
+    // Con Ajustes o el menú de acciones abiertos, su propio useGamepad manda.
+    enabled: !settingsOpen && !actionMenuOpen && hasLibrary
   })
+
+  // Al cambiar de filtro, volver al primer juego de la lista.
+  useEffect(() => {
+    setSelectedIndex(0)
+  }, [filter, setSelectedIndex])
 
   // Al arrancar el juego (running), cerrar el overlay tras un instante.
   // (En el Paso 7 esto se sustituye por destruir la ventana.)
@@ -82,26 +144,54 @@ export default function App(): JSX.Element {
     return undefined
   }, [launch.status, launch.dismiss])
 
-  const ready = !loading && !error && games.length > 0
-  const selectedGame = games[selectedIndex]
+  const selectedGame = visibleGames[selectedIndex]
   const selectedHero = selectedGame ? artwork[gameKey(selectedGame)]?.hero ?? null : null
+  const selectedUpdate = selectedGame ? updateStates[gameKey(selectedGame)] : undefined
+
+  const updatingCount = Object.values(updateStates).filter(
+    (u) => u.updateState === 'updating'
+  ).length
+  const pendingCount = Object.values(updateStates).filter(
+    (u) => u.updateState === 'update-pending'
+  ).length
 
   const steamCount = games.filter((g) => g.platform === 'steam').length
   const epicCount = games.filter((g) => g.platform === 'epic').length
+  const ubisoftCount = games.filter((g) => g.platform === 'ubisoft').length
 
   return (
     <div className="app">
       <GameHero heroUrl={selectedHero} />
 
-      {legendaryAuth === false && (
-        <div className="app__toast app__toast--warning">
-          ⚠️ legendary no está instalado o sin cuenta de Epic. Ejecuta{' '}
-          <code>legendary auth</code> para ver tus juegos de Epic.
-        </div>
+      <button
+        className="app__settings-btn"
+        onClick={() => setSettingsOpen(true)}
+        aria-label="Ajustes"
+        title="Ajustes (Y)"
+      >
+        ⚙
+      </button>
+
+      {legendaryAuth === false && !settingsOpen && (
+        <button
+          className="app__toast app__toast--warning"
+          onClick={() => setSettingsOpen(true)}
+        >
+          ⚠️ Conecta tu cuenta de Epic para verificar y lanzar sus juegos. Pulsa{' '}
+          <strong>Y</strong> o abre <strong>Ajustes</strong>.
+        </button>
       )}
 
       {justReturned && (
         <div className="app__toast app__toast--launch">👋 ¡Bienvenido de nuevo!</div>
+      )}
+
+      {hasLibrary && (
+        <FilterTabs
+          active={filter}
+          counts={{ installed: games.length, updates: updatingCount + pendingCount }}
+          layout={layout}
+        />
       )}
 
       {loading && (
@@ -120,12 +210,12 @@ export default function App(): JSX.Element {
       {!loading && !error && games.length === 0 && (
         <div className="app__overlay">
           <p className="app__status">
-            No se detectaron juegos instalados de Steam ni Epic.
+            No se detectaron juegos instalados de Steam, Epic ni Ubisoft.
           </p>
         </div>
       )}
 
-      {ready && selectedGame && (
+      {hasLibrary && selectedGame && (
         <>
           <div className="app__info">
             <p className="app__brand">HanDeck</p>
@@ -135,15 +225,59 @@ export default function App(): JSX.Element {
                 {selectedGame.platform}
               </span>
               <span>ID: {selectedGame.id}</span>
+              {selectedUpdate && selectedUpdate.updateState !== 'ready' && (
+                <span
+                  className={`app__update-badge app__update-badge--${selectedUpdate.updateState}`}
+                >
+                  {updateLabel(selectedUpdate)}
+                </span>
+              )}
             </div>
           </div>
 
           <div className="app__count">
-            {games.length} juegos · {steamCount} Steam · {epicCount} Epic
+            <span>{games.length} juegos</span>
+            <span className="app__count-dot">·</span>
+            <span>{steamCount} Steam</span>
+            <span className="app__count-dot">·</span>
+            <span>{epicCount} Epic</span>
+            {ubisoftCount > 0 && (
+              <>
+                <span className="app__count-dot">·</span>
+                <span>{ubisoftCount} Ubisoft</span>
+              </>
+            )}
+            {updatingCount > 0 && (
+              <>
+                <span className="app__count-dot">·</span>
+                <span className="app__count-updating">{updatingCount} actualizando</span>
+              </>
+            )}
+            {pendingCount > 0 && (
+              <>
+                <span className="app__count-dot">·</span>
+                <span className="app__count-pending">
+                  {pendingCount} pendiente{pendingCount === 1 ? '' : 's'}
+                </span>
+              </>
+            )}
           </div>
 
-          <GameCarousel games={games} artwork={artwork} selectedIndex={selectedIndex} />
+          <GameCarousel
+            games={visibleGames}
+            artwork={artwork}
+            updateStates={updateStates}
+            selectedIndex={selectedIndex}
+          />
         </>
+      )}
+
+      {hasLibrary && filter === 'updates' && visibleGames.length === 0 && (
+        <div className="app__overlay">
+          <p className="app__status">
+            No hay juegos actualizándose ni pendientes de actualizar. 🎉
+          </p>
+        </div>
       )}
 
       {launch.game && (
@@ -156,12 +290,30 @@ export default function App(): JSX.Element {
         />
       )}
 
+      {settingsOpen && <SettingsPanel onClose={closeSettings} />}
+
+      {actionMenuOpen && selectedGame && (
+        <ActionMenu
+          game={selectedGame}
+          update={selectedUpdate}
+          onPlay={() => launch.launch(selectedGame)}
+          onClose={() => setActionMenuOpen(false)}
+        />
+      )}
+
       <ControlHints
         connected={connected}
+        layout={layout}
         hints={[
+          {
+            button: `${triggerLabels(layout).left}·${triggerLabels(layout).right}`,
+            label: 'Filtro'
+          },
           { button: '↔', label: 'Navegar' },
-          { button: 'A', label: 'Jugar' },
-          { button: 'B', label: 'Atrás' }
+          { face: 'confirm', label: 'Jugar' },
+          { face: 'options', label: 'Opciones' },
+          { face: 'back', label: 'Atrás' },
+          { face: 'menu', label: 'Ajustes' }
         ]}
       />
     </div>

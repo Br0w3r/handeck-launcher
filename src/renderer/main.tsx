@@ -31,9 +31,19 @@ if (import.meta.env.DEV && !window.handeck) {
   let launchCancelled = false
   const wait = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
 
+  // Estado simulado de Epic + ajustes para probar la pantalla de Ajustes en dev.
+  const mockEpic = { installed: true, authenticated: false, account: null as string | null }
+  const mockSettings = {
+    steamGridDbApiKey: '',
+    verifyOnLaunch: true,
+    checkUpdatesOnLaunch: true
+  }
+
   window.handeck = {
     getGames: async () => MOCK_GAMES,
-    isLegendaryAuthenticated: async () => true,
+    getUpdateStates: async () => ({}),
+    onUpdateStates: () => () => {},
+    isLegendaryAuthenticated: async () => mockEpic.authenticated,
     getArtwork: async (game) => ({
       grid: svg(game.title, 300, 420, game.id),
       hero: svg(game.title, 1280, 720, game.id + 'h')
@@ -59,6 +69,14 @@ if (import.meta.env.DEV && !window.handeck) {
     cancelLaunch: async () => {
       launchCancelled = true
     },
+    steamAction: async (action, appId) => {
+      // eslint-disable-next-line no-console
+      console.info('[mock] steamAction', action, appId ?? '')
+    },
+    openStoreGame: async (platform, id) => {
+      // eslint-disable-next-line no-console
+      console.info('[mock] openStoreGame', platform, id)
+    },
     onLaunchStatus: (cb) => {
       statusCb = cb
       return () => {
@@ -70,6 +88,39 @@ if (import.meta.env.DEV && !window.handeck) {
       return () => {
         gameClosedCb = null
       }
+    },
+    // Cuenta Epic (simulada).
+    getEpicStatus: async () => ({ ...mockEpic }),
+    epicAuthImport: async () => {
+      await wait(700)
+      mockEpic.authenticated = true
+      mockEpic.account = 'dev@epic.local'
+      return { ok: true, message: 'Sesión de Epic importada (simulado).' }
+    },
+    epicLogin: async () => {
+      await wait(900)
+      mockEpic.authenticated = true
+      mockEpic.account = 'dev@epic.local'
+      return { ok: true, message: 'Sesión de Epic iniciada (simulado).' }
+    },
+    epicAuthCode: async (code) => {
+      await wait(700)
+      if (!code.trim()) return { ok: false, message: 'Pega el código de autorización.' }
+      mockEpic.authenticated = true
+      mockEpic.account = 'dev@epic.local'
+      return { ok: true, message: 'Sesión de Epic iniciada (simulado).' }
+    },
+    epicLogout: async () => {
+      await wait(400)
+      mockEpic.authenticated = false
+      mockEpic.account = null
+      return { ok: true, message: 'Sesión de Epic cerrada.' }
+    },
+    // Ajustes (simulados).
+    getSettings: async () => ({ ...mockSettings }),
+    setSettings: async (patch) => {
+      Object.assign(mockSettings, patch)
+      return { ...mockSettings }
     }
   }
 }

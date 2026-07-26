@@ -1,0 +1,77 @@
+/* Pestañas de filtro, centradas en la parte superior. */
+.filter-tabs {
+  position: absolute;
+  top: 3vh;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.filter-tabs__group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem;
+  border-radius: 999px;
+  background: var(--glass-bg, rgba(20, 20, 31, 0.6));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+  backdrop-filter: blur(var(--glass-blur, 12px));
+  -webkit-backdrop-filter: blur(var(--glass-blur, 12px));
+}
+
+.filter-tabs__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 1.1rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  transition:
+    background var(--transition),
+    color var(--transition);
+}
+
+.filter-tabs__tab--active {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(0, 112, 209, 0.45);
+}
+
+.filter-tabs__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.28);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.filter-tabs__tab--active .filter-tabs__count {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* Indicador del gatillo (LT/RT) a los lados. */
+.filter-tabs__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  height: 1.6rem;
+  padding: 0 0.4rem;
+  border-radius: 8px;
+  background: var(--glass-bg, rgba(20, 20, 31, 0.6));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+}

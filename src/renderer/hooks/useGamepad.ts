@@ -14,6 +14,30 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  *  - Threshold/deadzone del joystick para evitar drift (default 0.5).
  */
 
+/**
+ * Familia de mando, para mostrar los glifos correctos (los índices de botón de
+ * la Gamepad API son los mismos; sólo cambia la etiqueta que ve el usuario).
+ */
+export type PadLayout = 'xbox' | 'playstation'
+
+/**
+ * Detecta la familia del mando por su `id` (Gamepad API). Los DualShock/DualSense
+ * de Sony reportan el vendor 054c; el resto (handhelds tipo Claw/Ally/Legion,
+ * mandos Xbox, genéricos) se tratan como layout Xbox por defecto.
+ */
+export function detectLayout(id: string): PadLayout {
+  const s = id.toLowerCase()
+  if (
+    s.includes('054c') ||
+    s.includes('dualshock') ||
+    s.includes('dualsense') ||
+    s.includes('playstation')
+  ) {
+    return 'playstation'
+  }
+  return 'xbox'
+}
+
 /** Mapeo estándar de botones XInput. */
 export const BUTTONS = {
   A: 0, // Confirmar / Jugar
@@ -42,6 +66,14 @@ export interface UseGamepadOptions {
   onConfirm?: (index: number) => void
   /** Se dispara con B / Escape. */
   onBack?: () => void
+  /** Se dispara con Y / tecla "y" (p.ej. abrir Ajustes). */
+  onMenu?: () => void
+  /** Se dispara con X / tecla "x" (p.ej. abrir el menú de acciones del juego). */
+  onAction?: () => void
+  /** Gatillo/bumper izquierdo (LT/LB, teclas "q"/"["), p.ej. filtro anterior. */
+  onTriggerLeft?: () => void
+  /** Gatillo/bumper derecho (RT/RB, teclas "e"/"]"), p.ej. filtro siguiente. */
+  onTriggerRight?: () => void
   /** Umbral del joystick para considerar movimiento (default 0.5). */
   deadzone?: number
   /** ms antes de empezar a repetir al mantener una dirección (default 400). */
@@ -57,6 +89,8 @@ export interface UseGamepadResult {
   setSelectedIndex: (index: number) => void
   /** ¿Hay al menos un mando conectado? (para pistas de UI). */
   connected: boolean
+  /** Familia del mando conectado, para mostrar los glifos correctos. */
+  layout: PadLayout
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -68,6 +102,10 @@ export function useGamepad(options: UseGamepadOptions): UseGamepadResult {
     itemCount,
     onConfirm,
     onBack,
+    onMenu,
+    onAction,
+    onTriggerLeft,
+    onTriggerRight,
     deadzone = 0.5,
     initialDelay = 400,
     repeatInterval = 130,
@@ -76,12 +114,17 @@ export function useGamepad(options: UseGamepadOptions): UseGamepadResult {
 
   const [selectedIndex, setSelectedIndexState] = useState(0)
   const [connected, setConnected] = useState(false)
+  const [layout, setLayout] = useState<PadLayout>('xbox')
 
   // Refs para que el loop de RAF vea siempre los valores frescos sin reiniciarse.
   const selectedIndexRef = useRef(0)
   const itemCountRef = useRef(itemCount)
   const onConfirmRef = useRef(onConfirm)
   const onBackRef = useRef(onBack)
+  const onMenuRef = useRef(onMenu)
+  const onActionRef = useRef(onAction)
+  const onTriggerLeftRef = useRef(onTriggerLeft)
+  const onTriggerRightRef = useRef(onTriggerRight)
   const deadzoneRef = useRef(deadzone)
   const initialDelayRef = useRef(initialDelay)
   const repeatIntervalRef = useRef(repeatInterval)
@@ -95,6 +138,18 @@ export function useGamepad(options: UseGamepadOptions): UseGamepadResult {
   useEffect(() => {
     onBackRef.current = onBack
   }, [onBack])
+  useEffect(() => {
+    onMenuRef.current = onMenu
+  }, [onMenu])
+  useEffect(() => {
+    onActionRef.current = onAction
+  }, [onAction])
+  useEffect(() => {
+    onTriggerLeftRef.current = onTriggerLeft
+  }, [onTriggerLeft])
+  useEffect(() => {
+    onTriggerRightRef.current = onTriggerRight
+  }, [onTriggerRight])
   useEffect(() => {
     deadzoneRef.current = deadzone
     initialDelayRef.current = initialDelay
@@ -197,6 +252,13 @@ export function useGamepad(options: UseGamepadOptions): UseGamepadResult {
           onConfirmRef.current?.(selectedIndexRef.current)
         )
         handleButtonEdge(pad, BUTTONS.B, () => onBackRef.current?.())
+        handleButtonEdge(pad, BUTTONS.Y, () => onMenuRef.current?.())
+        handleButtonEdge(pad, BUTTONS.X, () => onActionRef.current?.())
+        // Gatillos (LT/RT) y bumpers (LB/RB): cambiar de filtro/pestaña.
+        handleButtonEdge(pad, BUTTONS.LT, () => onTriggerLeftRef.current?.())
+        handleButtonEdge(pad, BUTTONS.LB, () => onTriggerLeftRef.current?.())
+        handleButtonEdge(pad, BUTTONS.RT, () => onTriggerRightRef.current?.())
+        handleButtonEdge(pad, BUTTONS.RB, () => onTriggerRightRef.current?.())
       } else {
         heldDir = 0
       }
@@ -227,19 +289,47 @@ export function useGamepad(options: UseGamepadOptions): UseGamepadResult {
         case 'Backspace':
           onBackRef.current?.()
           break
+        case 'y':
+        case 'Y':
+          onMenuRef.current?.()
+          break
+        case 'x':
+        case 'X':
+          onActionRef.current?.()
+          break
+        case 'q':
+        case '[':
+          onTriggerLeftRef.current?.()
+          break
+        case 'e':
+        case ']':
+          onTriggerRightRef.current?.()
+          break
         default:
           break
       }
     }
 
-    const onConnect = (): void => setConnected(true)
+    // Detecta la familia del primer mando conectado (para los glifos).
+    const detectFromPads = (): void => {
+      const pads = navigator.getGamepads?.() ?? []
+      const pad = Array.from(pads).find((p): p is Gamepad => p !== null)
+      if (pad) setLayout(detectLayout(pad.id))
+    }
+
+    const onConnect = (e: GamepadEvent): void => {
+      setConnected(true)
+      setLayout(detectLayout(e.gamepad.id))
+    }
     const onDisconnect = (): void => {
       const pads = navigator.getGamepads?.() ?? []
       setConnected(Array.from(pads).some((p) => p !== null))
+      detectFromPads()
     }
 
-    // Estado inicial de conexión.
+    // Estado inicial de conexión y layout.
     setConnected(Array.from(navigator.getGamepads?.() ?? []).some((p) => p !== null))
+    detectFromPads()
 
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('gamepadconnected', onConnect)
@@ -255,5 +345,5 @@ export function useGamepad(options: UseGamepadOptions): UseGamepadResult {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  return { selectedIndex, setSelectedIndex, connected }
+  return { selectedIndex, setSelectedIndex, connected, layout }
 }

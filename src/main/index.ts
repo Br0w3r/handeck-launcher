@@ -3,9 +3,10 @@ import { pathToFileURL } from 'node:url'
 import { app, BrowserWindow, net, protocol } from 'electron'
 
 import { cachedFilePath, type ArtworkType } from './artwork/artworkCache'
-import { detectGames } from './games'
+import { detectGames, refreshEpicUpdates } from './games'
 import { isMonitoring } from './gameMonitor'
 import { registerIpcHandlers } from './ipc/handlers'
+import { pushUpdateStates, startUpdateWatcher } from './updateWatcher'
 import { createWindow } from './windowManager'
 
 /**
@@ -62,6 +63,15 @@ app.whenReady().then(() => {
   logDetectedGames()
   registerIpcHandlers()
   createWindow()
+  // Observa los manifests de Steam para reflejar las actualizaciones en vivo.
+  startUpdateWatcher()
+
+  // Comprueba updates pendientes de Epic (versión instalada vs última online vía
+  // legendary) en segundo plano y refresca cada 30 min. Al terminar, empuja el
+  // estado al renderer para que aparezca el badge sin recargar.
+  void refreshEpicUpdates(pushUpdateStates)
+  const EPIC_UPDATE_INTERVAL_MS = 30 * 60 * 1000
+  setInterval(() => void refreshEpicUpdates(pushUpdateStates), EPIC_UPDATE_INTERVAL_MS)
 
   app.on('activate', () => {
     // En macOS es habitual recrear la ventana al reactivar la app.

@@ -1,14 +1,32 @@
 :root {
-  /* Paleta base tipo PS5 (se ampliará en el Paso 5). */
-  --bg-primary: #0a0a0f;
-  --bg-card: #1a1a2e;
+  /* Paleta base tipo PS5. */
+  --bg-primary: #07070b;
+  --bg-card: #14141f;
   --accent: #0070d1; /* azul PlayStation */
+  --accent-soft: #6cc0f4;
+  --amber: #f5b642;
   --text-primary: #ffffff;
-  --text-secondary: #8899aa;
+  --text-secondary: #93a1b3;
+  --text-tertiary: #5c6675;
 
-  --card-width: 190px;
-  --card-height: 265px;
-  --card-gap: 22px;
-  --card-selected-scale: 1.08;
-  --transition: 220ms cubic-bezier(0.4, 0, 0.2, 1);
+  /* Cristal esmerilado (frosted) compartido por badges/pills/botones. */
+  --glass-bg: rgba(18, 20, 30, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-blur: 14px;
+
+  /* Sombras y glow. */
+  --shadow-card: 0 12px 30px rgba(0, 0, 0, 0.5);
+  --shadow-selected: 0 26px 64px rgba(0, 0, 0, 0.7);
+  --ring-selected: 0 0 0 2px rgba(255, 255, 255, 0.9);
+  --accent-glow: 0 0 46px -8px rgba(0, 112, 209, 0.75);
+
+  /* Cards. */
+  --card-width: 200px;
+  --card-height: 280px;
+  --card-gap: 26px;
+  --card-radius: 14px;
+  --card-selected-scale: 1.12;
+
+  --transition: 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  --transition-fast: 160ms cubic-bezier(0.22, 0.61, 0.36, 1);
 }
