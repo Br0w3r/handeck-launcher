@@ -194,8 +194,8 @@ export function SettingsPanel({ onClose }: SettingsPanelProps): JSX.Element {
             </span>
           </button>
           <p className="settings__hint">
-            Se abre solo al encender el equipo. (No desactiva MSI Center; eso se
-            quita en Administrador de tareas → Inicio.)
+            Se abre solo al encender el equipo, junto a MSI Center M (que activa tu
+            mando en modo gamepad — no lo desactives, HanDeck lo necesita).
           </p>
         </section>
 
