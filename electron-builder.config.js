@@ -9,6 +9,16 @@ module.exports = {
   appId: 'com.handeck.launcher',
   productName: 'HanDeck Launcher',
   copyright: 'Copyright © 2026 HanDeck',
+  // Dónde publica electron-builder y desde dónde electron-updater busca updates.
+  // (Genera latest.yml para el auto-update. Para repos privados, la descarga en
+  // el equipo del usuario requiere que las Releases sean públicas.)
+  publish: [
+    {
+      provider: 'github',
+      owner: 'Br0w3r',
+      repo: 'handeck-launcher'
+    }
+  ],
   directories: {
     output: 'dist',
     buildResources: 'resources'

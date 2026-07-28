@@ -23,6 +23,7 @@ import type { ArtworkUrls, Game, UpdateInfo } from '../games'
 import { startGameLifecycle } from '../gameMonitor'
 import { cancelLaunch, launchGame } from '../launcher'
 import { getStore } from '../store'
+import { checkForUpdates, downloadUpdate, quitAndInstall } from '../updater'
 import { pushUpdateStates } from '../updateWatcher'
 
 /**
@@ -205,4 +206,9 @@ export function registerIpcHandlers(): void {
       checkUpdatesOnLaunch: store.get('checkUpdatesOnLaunch')
     }
   })
+
+  // ── Auto-actualización del launcher (electron-updater) ──────────────────────
+  ipcMain.handle('app-update:check', (): void => checkForUpdates())
+  ipcMain.handle('app-update:download', (): void => downloadUpdate())
+  ipcMain.handle('app-update:install', (): void => quitAndInstall())
 }

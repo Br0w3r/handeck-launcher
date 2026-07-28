@@ -1,0 +1,59 @@
+.update-banner {
+  position: absolute;
+  top: 3vh;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.6rem 1.1rem;
+  border-radius: 12px;
+  background: rgba(20, 20, 34, 0.92);
+  border: 1px solid var(--accent);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px);
+  max-width: 90vw;
+}
+
+.update-banner__text {
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.update-banner__btn {
+  padding: 0.35rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.update-banner__btn--ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border-color: transparent;
+}
+
+.update-banner__progress {
+  width: 160px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+}
+
+.update-banner__progress-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 200ms ease;
+}
+
+.update-banner__percent {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  min-width: 3ch;
+}

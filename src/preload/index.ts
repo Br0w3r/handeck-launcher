@@ -93,7 +93,44 @@ const api = {
   getSettings: (): Promise<AppSettings> => ipcRenderer.invoke('settings:get'),
 
   setSettings: (patch: Partial<AppSettings>): Promise<AppSettings> =>
-    ipcRenderer.invoke('settings:set', patch)
+    ipcRenderer.invoke('settings:set', patch),
+
+  // ── Auto-actualización del launcher ──────────────────────────────────────────
+
+  /** Fuerza una comprobación de actualizaciones del launcher. */
+  checkAppUpdate: (): Promise<void> => ipcRenderer.invoke('app-update:check'),
+
+  /** Descarga la actualización disponible. */
+  downloadAppUpdate: (): Promise<void> => ipcRenderer.invoke('app-update:download'),
+
+  /** Reinicia el launcher e instala la actualización descargada. */
+  installAppUpdate: (): Promise<void> => ipcRenderer.invoke('app-update:install'),
+
+  /** Hay una versión nueva disponible. */
+  onAppUpdateAvailable: (callback: (info: { version: string }) => void): (() => void) => {
+    const listener = (_e: IpcRendererEvent, info: { version: string }): void =>
+      callback(info)
+    ipcRenderer.on('update:available', listener)
+    return () => ipcRenderer.removeListener('update:available', listener)
+  },
+
+  /** Progreso de descarga (0-100). */
+  onAppUpdateProgress: (callback: (info: { percent: number }) => void): (() => void) => {
+    const listener = (_e: IpcRendererEvent, info: { percent: number }): void =>
+      callback(info)
+    ipcRenderer.on('update:progress', listener)
+    return () => ipcRenderer.removeListener('update:progress', listener)
+  },
+
+  /** La actualización terminó de descargarse y está lista para instalar. */
+  onAppUpdateDownloaded: (
+    callback: (info: { version: string }) => void
+  ): (() => void) => {
+    const listener = (_e: IpcRendererEvent, info: { version: string }): void =>
+      callback(info)
+    ipcRenderer.on('update:downloaded', listener)
+    return () => ipcRenderer.removeListener('update:downloaded', listener)
+  }
 }
 
 if (process.contextIsolated) {

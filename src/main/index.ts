@@ -6,8 +6,9 @@ import { cachedFilePath, type ArtworkType } from './artwork/artworkCache'
 import { detectGames, refreshEpicUpdates } from './games'
 import { isMonitoring } from './gameMonitor'
 import { registerIpcHandlers } from './ipc/handlers'
+import { initAutoUpdater } from './updater'
 import { pushUpdateStates, startUpdateWatcher } from './updateWatcher'
-import { createWindow } from './windowManager'
+import { createWindow, getMainWindow } from './windowManager'
 
 /**
  * Entry point del main process de Electron.
@@ -63,6 +64,8 @@ app.whenReady().then(() => {
   logDetectedGames()
   registerIpcHandlers()
   createWindow()
+  // Auto-actualización del propio launcher (sólo en la app empaquetada).
+  initAutoUpdater(getMainWindow)
   // Observa los manifests de Steam para reflejar las actualizaciones en vivo.
   startUpdateWatcher()
 

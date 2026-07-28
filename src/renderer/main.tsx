@@ -28,6 +28,8 @@ if (import.meta.env.DEV && !window.handeck) {
   // vida (game:closed). En Electron real el juego corre y la ventana se recrea.
   let statusCb: ((p: LaunchProgress) => void) | null = null
   let gameClosedCb: (() => void) | null = null
+  let updateProgressCb: ((i: { percent: number }) => void) | null = null
+  let updateDownloadedCb: ((i: { version: string }) => void) | null = null
   let launchCancelled = false
   const wait = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
 
@@ -121,6 +123,39 @@ if (import.meta.env.DEV && !window.handeck) {
     setSettings: async (patch) => {
       Object.assign(mockSettings, patch)
       return { ...mockSettings }
+    },
+    // Auto-actualización (simulada): aparece una update a los ~1.5s.
+    checkAppUpdate: async () => {},
+    downloadAppUpdate: async () => {
+      let p = 0
+      const iv = setInterval(() => {
+        p += 20
+        updateProgressCb?.({ percent: Math.min(p, 100) })
+        if (p >= 100) {
+          clearInterval(iv)
+          updateDownloadedCb?.({ version: '0.2.0' })
+        }
+      }, 300)
+    },
+    installAppUpdate: async () => {
+      // eslint-disable-next-line no-console
+      console.info('[mock] installAppUpdate')
+    },
+    onAppUpdateAvailable: (cb) => {
+      const t = setTimeout(() => cb({ version: '0.2.0' }), 1500)
+      return () => clearTimeout(t)
+    },
+    onAppUpdateProgress: (cb) => {
+      updateProgressCb = cb
+      return () => {
+        updateProgressCb = null
+      }
+    },
+    onAppUpdateDownloaded: (cb) => {
+      updateDownloadedCb = cb
+      return () => {
+        updateDownloadedCb = null
+      }
     }
   }
 }

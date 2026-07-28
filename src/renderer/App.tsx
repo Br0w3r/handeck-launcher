@@ -8,6 +8,8 @@ import { GameCarousel } from './components/GameCarousel/GameCarousel'
 import { GameHero } from './components/GameHero/GameHero'
 import { LaunchOverlay } from './components/LaunchOverlay/LaunchOverlay'
 import { SettingsPanel } from './components/SettingsPanel/SettingsPanel'
+import { UpdateBanner } from './components/UpdateBanner/UpdateBanner'
+import { useAppUpdate } from './hooks/useAppUpdate'
 import { gameKey, useArtwork } from './hooks/useArtwork'
 import { useGamepad } from './hooks/useGamepad'
 import { useGames } from './hooks/useGames'
@@ -29,6 +31,7 @@ export default function App(): JSX.Element {
   const [justReturned, setJustReturned] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [actionMenuOpen, setActionMenuOpen] = useState(false)
+  const appUpdate = useAppUpdate()
 
   const refreshLegendaryAuth = useCallback(() => {
     window.handeck
@@ -162,6 +165,8 @@ export default function App(): JSX.Element {
   return (
     <div className="app">
       <GameHero heroUrl={selectedHero} />
+
+      <UpdateBanner update={appUpdate} />
 
       <button
         className="app__settings-btn"
