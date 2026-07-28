@@ -57,6 +57,10 @@ export function SettingsPanel({ onClose }: SettingsPanelProps): JSX.Element {
       activate: () =>
         void update({ checkUpdatesOnLaunch: !(settings?.checkUpdatesOnLaunch ?? true) })
     })
+    list.push({
+      key: 'startup',
+      activate: () => void update({ launchOnStartup: !(settings?.launchOnStartup ?? false) })
+    })
     return list
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authed, settings, epic])
@@ -173,6 +177,26 @@ export function SettingsPanel({ onClose }: SettingsPanelProps): JSX.Element {
               {settings?.checkUpdatesOnLaunch ? 'Sí' : 'No'}
             </span>
           </button>
+        </section>
+
+        {/* ── Sistema ──────────────────────────────────────────────────── */}
+        <section className="settings__section">
+          <h2 className="settings__section-title">Sistema</h2>
+          <button
+            className={rowClass('startup')}
+            onClick={() =>
+              void update({ launchOnStartup: !(settings?.launchOnStartup ?? false) })
+            }
+          >
+            <span>Abrir HanDeck al iniciar Windows</span>
+            <span className="settings__toggle">
+              {settings?.launchOnStartup ? 'Sí' : 'No'}
+            </span>
+          </button>
+          <p className="settings__hint">
+            Se abre solo al encender el equipo. (No desactiva MSI Center; eso se
+            quita en Administrador de tareas → Inicio.)
+          </p>
         </section>
 
         <footer className="settings__footer">

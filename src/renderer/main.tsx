@@ -38,7 +38,8 @@ if (import.meta.env.DEV && !window.handeck) {
   const mockSettings = {
     steamGridDbApiKey: '',
     verifyOnLaunch: true,
-    checkUpdatesOnLaunch: true
+    checkUpdatesOnLaunch: true,
+    launchOnStartup: false
   }
 
   window.handeck = {

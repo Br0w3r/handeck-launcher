@@ -22,6 +22,7 @@ import {
 import type { ArtworkUrls, Game, UpdateInfo } from '../games'
 import { startGameLifecycle } from '../gameMonitor'
 import { cancelLaunch, launchGame } from '../launcher'
+import { getLaunchOnStartup, setLaunchOnStartup } from '../startup'
 import { getStore } from '../store'
 import { checkForUpdates, downloadUpdate, quitAndInstall } from '../updater'
 import { pushUpdateStates } from '../updateWatcher'
@@ -43,6 +44,8 @@ export interface AppSettings {
   steamGridDbApiKey: string
   verifyOnLaunch: boolean
   checkUpdatesOnLaunch: boolean
+  /** Abrir HanDeck automáticamente al iniciar Windows. */
+  launchOnStartup: boolean
 }
 
 /**
@@ -180,14 +183,17 @@ export function registerIpcHandlers(): void {
 
   // ── Ajustes generales ──────────────────────────────────────────────────────
 
-  ipcMain.handle('settings:get', (): AppSettings => {
+  const readSettings = (): AppSettings => {
     const store = getStore()
     return {
       steamGridDbApiKey: store.get('steamGridDbApiKey'),
       verifyOnLaunch: store.get('verifyOnLaunch'),
-      checkUpdatesOnLaunch: store.get('checkUpdatesOnLaunch')
+      checkUpdatesOnLaunch: store.get('checkUpdatesOnLaunch'),
+      launchOnStartup: getLaunchOnStartup()
     }
-  })
+  }
+
+  ipcMain.handle('settings:get', (): AppSettings => readSettings())
 
   ipcMain.handle('settings:set', (_e, patch: Partial<AppSettings>): AppSettings => {
     const store = getStore()
@@ -200,11 +206,10 @@ export function registerIpcHandlers(): void {
     if (typeof patch.checkUpdatesOnLaunch === 'boolean') {
       store.set('checkUpdatesOnLaunch', patch.checkUpdatesOnLaunch)
     }
-    return {
-      steamGridDbApiKey: store.get('steamGridDbApiKey'),
-      verifyOnLaunch: store.get('verifyOnLaunch'),
-      checkUpdatesOnLaunch: store.get('checkUpdatesOnLaunch')
+    if (typeof patch.launchOnStartup === 'boolean') {
+      setLaunchOnStartup(patch.launchOnStartup)
     }
+    return readSettings()
   })
 
   // ── Auto-actualización del launcher (electron-updater) ──────────────────────
