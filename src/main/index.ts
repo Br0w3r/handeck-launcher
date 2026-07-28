@@ -8,7 +8,7 @@ import { isMonitoring } from './gameMonitor'
 import { registerIpcHandlers } from './ipc/handlers'
 import { initAutoUpdater } from './updater'
 import { pushUpdateStates, startUpdateWatcher } from './updateWatcher'
-import { createWindow, getMainWindow, summonWindow } from './windowManager'
+import { createWindow, getMainWindow, toggleWindow } from './windowManager'
 
 /**
  * Atajo global para traer HanDeck al frente desde cualquier lado. Asigna un
@@ -24,7 +24,7 @@ if (!gotLock) {
   app.quit()
 }
 
-app.on('second-instance', () => summonWindow())
+app.on('second-instance', () => toggleWindow())
 
 /**
  * Entry point del main process de Electron.
@@ -94,8 +94,8 @@ app.whenReady().then(() => {
   const EPIC_UPDATE_INTERVAL_MS = 30 * 60 * 1000
   setInterval(() => void refreshEpicUpdates(pushUpdateStates), EPIC_UPDATE_INTERVAL_MS)
 
-  // Atajo global para invocar el launcher (mapea un botón macro a esta tecla).
-  globalShortcut.register(SUMMON_HOTKEY, summonWindow)
+  // Atajo global para alternar el launcher (mapea un botón a esta tecla).
+  globalShortcut.register(SUMMON_HOTKEY, toggleWindow)
 
   app.on('activate', () => {
     // En macOS es habitual recrear la ventana al reactivar la app.

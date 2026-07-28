@@ -58,17 +58,24 @@ export function createWindow(): BrowserWindow {
 }
 
 /**
- * Trae HanDeck al frente: si la ventana existe la muestra/enfoca; si fue
- * destruida (p.ej. durante un juego) la recrea. Lo usa el atajo global y la
- * segunda instancia (al pulsar el botón/tecla asignada al launcher).
+ * Alterna HanDeck como un botón "home": si está al frente lo minimiza (vuelves a
+ * lo que había detrás); si está minimizado/en segundo plano lo trae al frente;
+ * si fue destruido (p.ej. durante un juego) lo recrea. Lo usan el atajo global y
+ * el botón físico (segunda instancia).
  */
-export function summonWindow(): void {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    if (mainWindow.isMinimized()) mainWindow.restore()
-    mainWindow.show()
-    mainWindow.focus()
-  } else {
+export function toggleWindow(): void {
+  const win = mainWindow
+  if (!win || win.isDestroyed()) {
     createWindow()
+    return
+  }
+  const atFront = win.isVisible() && !win.isMinimized() && win.isFocused()
+  if (atFront) {
+    win.minimize()
+  } else {
+    if (win.isMinimized()) win.restore()
+    win.show()
+    win.focus()
   }
 }
 
