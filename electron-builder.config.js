@@ -16,7 +16,10 @@ module.exports = {
     {
       provider: 'github',
       owner: 'Br0w3r',
-      repo: 'handeck-launcher'
+      repo: 'handeck-launcher',
+      // Publicar el Release directamente (no como borrador) para que
+      // electron-updater lo detecte sin pasos manuales.
+      releaseType: 'release'
     }
   ],
   directories: {
