@@ -6,7 +6,7 @@ import { cachedFilePath, type ArtworkType } from './artwork/artworkCache'
 import { detectGames, refreshEpicUpdates } from './games'
 import { registerIpcHandlers } from './ipc/handlers'
 import { createTray, destroyTray } from './tray'
-import { initAutoUpdater } from './updater'
+import { checkForUpdatesOnFocus, initAutoUpdater } from './updater'
 import { pushUpdateStates, startUpdateWatcher } from './updateWatcher'
 import {
   createWindow,
@@ -86,9 +86,13 @@ app.whenReady().then(() => {
   registerArtworkProtocol()
   logDetectedGames()
   registerIpcHandlers()
-  createWindow()
+  const win = createWindow()
   // Auto-actualización del propio launcher (sólo en la app empaquetada).
   initAutoUpdater(getMainWindow)
+  // Al volver al frente (salir de un juego, invocar desde la bandeja…) comprueba
+  // si hay versión nueva, sin tener que cerrar y reabrir el launcher.
+  win.on('focus', checkForUpdatesOnFocus)
+  win.on('show', checkForUpdatesOnFocus)
   // Observa los manifests de Steam para reflejar las actualizaciones en vivo.
   startUpdateWatcher()
 

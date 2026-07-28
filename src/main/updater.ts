@@ -16,7 +16,17 @@ import electronUpdater from 'electron-updater'
 
 const { autoUpdater } = electronUpdater
 
-const CHECK_INTERVAL_MS = 60 * 60 * 1000 // cada hora
+const CHECK_INTERVAL_MS = 15 * 60 * 1000 // periódico: cada 15 min mientras está abierto
+const THROTTLE_MS = 3 * 60 * 1000 // no comprobar por foco más de una vez cada 3 min
+
+let lastCheckAt = 0
+
+/** Comprobación real (registra el timestamp). Sólo en app empaquetada. */
+function runCheck(): void {
+  if (!app.isPackaged) return
+  lastCheckAt = Date.now()
+  void autoUpdater.checkForUpdates().catch(() => undefined)
+}
 
 export function initAutoUpdater(getWindow: () => BrowserWindow | null): void {
   // Sólo tiene sentido en la app empaquetada.
@@ -44,15 +54,24 @@ export function initAutoUpdater(getWindow: () => BrowserWindow | null): void {
     send('update:error', { message: err instanceof Error ? err.message : String(err) })
   )
 
-  void autoUpdater.checkForUpdates().catch(() => undefined)
-  setInterval(() => {
-    void autoUpdater.checkForUpdates().catch(() => undefined)
-  }, CHECK_INTERVAL_MS)
+  runCheck() // al arrancar
+  setInterval(runCheck, CHECK_INTERVAL_MS) // periódico mientras está abierto
 }
 
+/** Comprobación forzada (IPC app-update:check). */
 export function checkForUpdates(): void {
+  runCheck()
+}
+
+/**
+ * Comprobación al traer HanDeck al frente (foco/mostrar). Con throttle para no
+ * spamear la API de GitHub. Así, al volver al launcher se detecta una versión
+ * nueva sin tener que cerrarlo y reabrirlo.
+ */
+export function checkForUpdatesOnFocus(): void {
   if (!app.isPackaged) return
-  void autoUpdater.checkForUpdates().catch(() => undefined)
+  if (Date.now() - lastCheckAt < THROTTLE_MS) return
+  runCheck()
 }
 
 export function downloadUpdate(): void {
