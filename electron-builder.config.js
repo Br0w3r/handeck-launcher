@@ -44,6 +44,11 @@ module.exports = {
       from: 'resources/bin',
       to: 'bin',
       filter: ['**/*']
+    },
+    // icon.ico disponible en runtime para el icono de la bandeja del sistema.
+    {
+      from: 'resources/icon.ico',
+      to: 'icon.ico'
     }
   ],
   win: {

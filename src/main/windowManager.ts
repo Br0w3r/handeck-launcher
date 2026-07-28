@@ -13,8 +13,20 @@ import { BrowserWindow, shell } from 'electron'
 
 let mainWindow: BrowserWindow | null = null
 
+// Cuando es true, cerrar la ventana sí cierra la app (lo activa "Salir" del tray).
+// Mientras sea false, cerrar/ocultar sólo la manda a la bandeja del sistema.
+let quitting = false
+
 export function getMainWindow(): BrowserWindow | null {
   return mainWindow
+}
+
+export function setQuitting(value: boolean): void {
+  quitting = value
+}
+
+export function isQuitting(): boolean {
+  return quitting
 }
 
 export function createWindow(): BrowserWindow {
@@ -43,6 +55,15 @@ export function createWindow(): BrowserWindow {
     return { action: 'deny' }
   })
 
+  // Cerrar la ventana (X/Alt+F4) NO cierra la app: la esconde a la bandeja,
+  // como un proceso en segundo plano. Sólo "Salir" del tray cierra de verdad.
+  mainWindow.on('close', (e) => {
+    if (!quitting) {
+      e.preventDefault()
+      mainWindow?.hide()
+    }
+  })
+
   mainWindow.on('closed', () => {
     mainWindow = null
   })
@@ -58,9 +79,24 @@ export function createWindow(): BrowserWindow {
 }
 
 /**
- * Alterna HanDeck como un botón "home": si está al frente lo minimiza (vuelves a
- * lo que había detrás); si está minimizado/en segundo plano lo trae al frente;
- * si fue destruido (p.ej. durante un juego) lo recrea. Lo usan el atajo global y
+ * Trae HanDeck al frente: lo muestra/enfoca, o lo recrea si fue destruido
+ * (p.ej. durante un juego). Siempre deja la ventana visible.
+ */
+export function showWindow(): void {
+  const win = mainWindow
+  if (!win || win.isDestroyed()) {
+    createWindow()
+    return
+  }
+  if (win.isMinimized()) win.restore()
+  win.show()
+  win.focus()
+}
+
+/**
+ * Alterna HanDeck como un botón "home": si está al frente lo ESCONDE a la
+ * bandeja del sistema (fuera de la barra de tareas, proceso en segundo plano);
+ * si está oculto/en segundo plano lo trae al frente. Lo usan el atajo global y
  * el botón físico (segunda instancia).
  */
 export function toggleWindow(): void {
@@ -71,11 +107,9 @@ export function toggleWindow(): void {
   }
   const atFront = win.isVisible() && !win.isMinimized() && win.isFocused()
   if (atFront) {
-    win.minimize()
+    win.hide() // a la bandeja: desaparece de la barra de tareas
   } else {
-    if (win.isMinimized()) win.restore()
-    win.show()
-    win.focus()
+    showWindow()
   }
 }
 

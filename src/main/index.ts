@@ -4,11 +4,16 @@ import { app, BrowserWindow, globalShortcut, net, protocol } from 'electron'
 
 import { cachedFilePath, type ArtworkType } from './artwork/artworkCache'
 import { detectGames, refreshEpicUpdates } from './games'
-import { isMonitoring } from './gameMonitor'
 import { registerIpcHandlers } from './ipc/handlers'
+import { createTray, destroyTray } from './tray'
 import { initAutoUpdater } from './updater'
 import { pushUpdateStates, startUpdateWatcher } from './updateWatcher'
-import { createWindow, getMainWindow, toggleWindow } from './windowManager'
+import {
+  createWindow,
+  getMainWindow,
+  setQuitting,
+  toggleWindow
+} from './windowManager'
 
 /**
  * Atajo global para traer HanDeck al frente desde cualquier lado. Asigna un
@@ -94,6 +99,12 @@ app.whenReady().then(() => {
   const EPIC_UPDATE_INTERVAL_MS = 30 * 60 * 1000
   setInterval(() => void refreshEpicUpdates(pushUpdateStates), EPIC_UPDATE_INTERVAL_MS)
 
+  // Icono en la bandeja del sistema (para vivir en segundo plano al esconderse).
+  createTray(() => {
+    setQuitting(true)
+    app.quit()
+  })
+
   // Atajo global para alternar el launcher (mapea un botón a esta tecla).
   globalShortcut.register(SUMMON_HOTKEY, toggleWindow)
 
@@ -105,12 +116,12 @@ app.whenReady().then(() => {
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll()
+  destroyTray()
 })
 
 app.on('window-all-closed', () => {
-  // CLAVE del patrón de ciclo de vida: si estamos monitoreando un juego, la
-  // ventana se destruyó a propósito y el main process debe seguir vivo para
-  // recrearla al cerrar el juego. Sólo se cierra la app si NO hay monitoreo.
-  if (isMonitoring()) return
-  if (process.platform !== 'darwin') app.quit()
+  // Con icono en la bandeja del sistema, HanDeck sigue vivo en segundo plano
+  // aunque no haya ventana visible (igual que MSI Center). También cubre el
+  // ciclo de vida: al destruir la ventana durante un juego, el main sigue vivo
+  // para recrearla al cerrar el juego. Sólo se cierra desde "Salir" del tray.
 })
