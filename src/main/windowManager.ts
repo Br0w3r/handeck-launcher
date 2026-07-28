@@ -58,6 +58,21 @@ export function createWindow(): BrowserWindow {
 }
 
 /**
+ * Trae HanDeck al frente: si la ventana existe la muestra/enfoca; si fue
+ * destruida (p.ej. durante un juego) la recrea. Lo usa el atajo global y la
+ * segunda instancia (al pulsar el botón/tecla asignada al launcher).
+ */
+export function summonWindow(): void {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    mainWindow.show()
+    mainWindow.focus()
+  } else {
+    createWindow()
+  }
+}
+
+/**
  * Destruye la ventana liberando el renderer, manteniendo vivo el main process.
  * Se usará al lanzar un juego (Paso 7).
  */

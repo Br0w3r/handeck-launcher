@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
-import { app, BrowserWindow, net, protocol } from 'electron'
+import { app, BrowserWindow, globalShortcut, net, protocol } from 'electron'
 
 import { cachedFilePath, type ArtworkType } from './artwork/artworkCache'
 import { detectGames, refreshEpicUpdates } from './games'
@@ -8,7 +8,23 @@ import { isMonitoring } from './gameMonitor'
 import { registerIpcHandlers } from './ipc/handlers'
 import { initAutoUpdater } from './updater'
 import { pushUpdateStates, startUpdateWatcher } from './updateWatcher'
-import { createWindow, getMainWindow } from './windowManager'
+import { createWindow, getMainWindow, summonWindow } from './windowManager'
+
+/**
+ * Atajo global para traer HanDeck al frente desde cualquier lado. Asigna un
+ * botón macro del Claw a esta combinación en MSI Center M (Key Mapping 2.0) y
+ * ese botón abrirá el launcher — sin desinstalar nada.
+ */
+const SUMMON_HOTKEY = 'Control+Alt+H'
+
+// Instancia única: si ya hay una corriendo, la segunda invocación (p.ej. al
+// pulsar un botón que lanza el .exe) sólo trae al frente la existente.
+const gotLock = app.requestSingleInstanceLock()
+if (!gotLock) {
+  app.quit()
+}
+
+app.on('second-instance', () => summonWindow())
 
 /**
  * Entry point del main process de Electron.
@@ -60,6 +76,8 @@ function registerArtworkProtocol(): void {
 }
 
 app.whenReady().then(() => {
+  // La segunda instancia sólo enfoca la existente (second-instance) y se cierra.
+  if (!gotLock) return
   registerArtworkProtocol()
   logDetectedGames()
   registerIpcHandlers()
@@ -76,10 +94,17 @@ app.whenReady().then(() => {
   const EPIC_UPDATE_INTERVAL_MS = 30 * 60 * 1000
   setInterval(() => void refreshEpicUpdates(pushUpdateStates), EPIC_UPDATE_INTERVAL_MS)
 
+  // Atajo global para invocar el launcher (mapea un botón macro a esta tecla).
+  globalShortcut.register(SUMMON_HOTKEY, summonWindow)
+
   app.on('activate', () => {
     // En macOS es habitual recrear la ventana al reactivar la app.
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+})
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll()
 })
 
 app.on('window-all-closed', () => {
