@@ -1,6 +1,6 @@
 {
   "name": "handeck-launcher",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Launcher de juegos tipo PS5 para handhelds Windows (MSI Claw, ROG Ally, Legion Go)",
   "main": "./out/main/index.js",
   "author": "",

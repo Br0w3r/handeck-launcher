@@ -1,5 +1,5 @@
 import type { Game } from './games/types'
-import { waitForGameClose, waitForGameProcess } from './launcher/processUtils'
+import { waitForGameExit, waitForGameStart } from './launcher/processUtils'
 import { getMainWindow, hideWindow, showWindow } from './windowManager'
 
 /**
@@ -26,21 +26,21 @@ export async function startGameLifecycle(game: Game): Promise<void> {
   if (monitoring) return
   monitoring = true
   try {
-    // 1. Esperar a que el proceso del juego aparezca.
-    const proc = await waitForGameProcess(game)
-    if (!proc) {
+    // 1. Esperar a que el juego arranque (algún proceso bajo su carpeta).
+    const started = await waitForGameStart(game)
+    if (!started) {
       console.warn(
         `[monitor] No se detectó el proceso de "${game.title}"; se mantiene la ventana.`
       )
       return
     }
-    console.log(`[monitor] "${game.title}" corriendo (pid ${proc.pid}, ${proc.name}).`)
+    console.log(`[monitor] "${game.title}" corriendo.`)
 
     // 2. Esconder la ventana (misma instancia, en segundo plano).
     hideWindow()
 
-    // 3. Esperar a que el juego cierre.
-    await waitForGameClose(proc.pid)
+    // 3. Esperar a que el juego cierre del todo (tolera el relevo del anti-cheat).
+    await waitForGameExit(game)
     console.log(`[monitor] "${game.title}" cerrado; mostrando de nuevo HanDeck.`)
   } finally {
     monitoring = false
