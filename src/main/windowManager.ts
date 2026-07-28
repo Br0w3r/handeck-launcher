@@ -30,6 +30,12 @@ export function isQuitting(): boolean {
 }
 
 export function createWindow(): BrowserWindow {
+  // A prueba de duplicados: si ya hay una ventana viva, reutilízala (evita que
+  // queden dos ventanas de HanDeck).
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    return mainWindow
+  }
+
   // El launcher arranca como un juego: pantalla completa, sin bordes.
   mainWindow = new BrowserWindow({
     fullscreen: true,
@@ -76,6 +82,13 @@ export function createWindow(): BrowserWindow {
   }
 
   return mainWindow
+}
+
+/** Esconde la ventana (a la bandeja) manteniéndola viva. */
+export function hideWindow(): void {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.hide()
+  }
 }
 
 /**

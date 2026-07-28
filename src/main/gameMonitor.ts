@@ -1,21 +1,23 @@
 import type { Game } from './games/types'
 import { waitForGameClose, waitForGameProcess } from './launcher/processUtils'
-import { createWindow, destroyWindow } from './windowManager'
+import { getMainWindow, hideWindow, showWindow } from './windowManager'
 
 /**
- * Ciclo de vida del juego (LAUNCHER_CONTEXT.md):
+ * Ciclo de vida del juego:
  *   1. Tras lanzar, esperar a que el proceso del juego aparezca (ps-list).
- *   2. mainWindow.destroy() → sólo el main process queda vivo (~35MB).
+ *   2. ESCONDER la ventana (a la bandeja) — la MISMA instancia queda viva en
+ *      segundo plano; no se destruye ni se recrea (evita ventanas duplicadas y
+ *      recargar la app "de 0").
  *   3. Polling cada 5s hasta que el proceso desaparece.
- *   4. Recrear la ventana (~300-500ms) y avisar al renderer (game:closed).
+ *   4. MOSTRAR de nuevo la misma ventana y avisar al renderer (game:closed).
  *
- * Si el proceso no se detecta en el timeout, NO se destruye la ventana (para no
+ * Si el proceso no se detecta en el timeout, NO se esconde la ventana (para no
  * dejar al usuario sin launcher), y el flujo termina sin cambios.
  */
 
 let monitoring = false
 
-/** ¿Hay un juego siendo monitoreado ahora mismo? (evita cerrar la app al destruir). */
+/** ¿Hay un juego siendo monitoreado ahora mismo? */
 export function isMonitoring(): boolean {
   return monitoring
 }
@@ -34,19 +36,18 @@ export async function startGameLifecycle(game: Game): Promise<void> {
     }
     console.log(`[monitor] "${game.title}" corriendo (pid ${proc.pid}, ${proc.name}).`)
 
-    // 2. Liberar el renderer manteniendo vivo el main process.
-    destroyWindow()
+    // 2. Esconder la ventana (misma instancia, en segundo plano).
+    hideWindow()
 
     // 3. Esperar a que el juego cierre.
     await waitForGameClose(proc.pid)
-    console.log(`[monitor] "${game.title}" cerrado; recreando ventana.`)
+    console.log(`[monitor] "${game.title}" cerrado; mostrando de nuevo HanDeck.`)
   } finally {
     monitoring = false
   }
 
-  // 4. Recrear la ventana y avisar al renderer cuando esté cargada.
-  const win = createWindow()
-  win.webContents.once('did-finish-load', () => {
-    if (!win.isDestroyed()) win.webContents.send('game:closed')
-  })
+  // 4. Mostrar la MISMA ventana (sin recargar) y avisar al renderer.
+  showWindow()
+  const win = getMainWindow()
+  if (win && !win.isDestroyed()) win.webContents.send('game:closed')
 }
