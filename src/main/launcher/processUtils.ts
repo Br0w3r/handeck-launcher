@@ -54,30 +54,50 @@ async function listWindowsProcessPaths(): Promise<string[]> {
   })
 }
 
+/** Nombre "canónico" para comparar: minúsculas, sin extensión ni símbolos. */
+function canonName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\.[^.]+$/, '')
+    .replace(/[^a-z0-9]/g, '')
+}
+
 /**
  * ¿Hay algún proceso del juego corriendo?
- * Windows: cualquier proceso cuyo ejecutable esté dentro de installPath.
- * Fallback (o si no hay ruta): por nombre de ejecutable vía ps-list.
+ *
+ * Se combinan dos métodos (basta que UNO diga que sí) para ser robusto ante
+ * anti-cheat (el .exe lanzador cierra y arranca el `-Shipping.exe`) y ante fallos
+ * puntuales de una de las consultas:
+ *   1. ps-list (ligero): un proceso cuyo nombre coincide con executableName, o
+ *      cuyo nombre EMPIEZA con el nombre de la carpeta del juego (installdir).
+ *      Ej.: carpeta "DeadByDaylight" → "deadbydaylight-win64-shipping" empieza igual.
+ *   2. Refuerzo en Windows: cualquier proceso cuyo ejecutable esté DENTRO de
+ *      installPath (Get-CimInstance). Sólo se consulta si el paso 1 no encontró
+ *      nada (más barato y evita spawnear PowerShell en cada chequeo).
  */
 export async function isGameRunning(game: Game): Promise<boolean> {
-  const install = game.installPath ? norm(game.installPath) : ''
+  const installBase = game.installPath ? canonName(basename(game.installPath)) : ''
+  const exe = game.executableName ? basename(game.executableName).toLowerCase() : ''
 
-  if (process.platform === 'win32' && install) {
-    const paths = await listWindowsProcessPaths()
-    if (paths.length > 0) {
-      return paths.some((p) => p.startsWith(install))
-    }
-    // Si PowerShell falla, cae al método por nombre.
+  // 1. Por nombre (ps-list).
+  try {
+    const procs = await psList()
+    const nameHit = procs.some((p) => {
+      const raw = basename(p.name ?? '').toLowerCase()
+      if (exe && raw === exe) return true
+      if (installBase.length >= 5 && canonName(raw).startsWith(installBase)) return true
+      return false
+    })
+    if (nameHit) return true
+  } catch {
+    // sigue al refuerzo
   }
 
-  if (game.executableName) {
-    const exe = basename(game.executableName).toLowerCase()
-    try {
-      const procs = await psList()
-      return procs.some((p) => basename(p.name ?? '').toLowerCase() === exe)
-    } catch {
-      return false
-    }
+  // 2. Refuerzo por ruta de instalación (Windows).
+  const install = game.installPath ? norm(game.installPath) : ''
+  if (process.platform === 'win32' && install) {
+    const paths = await listWindowsProcessPaths()
+    if (paths.some((p) => p.startsWith(install))) return true
   }
 
   return false

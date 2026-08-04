@@ -4,6 +4,7 @@ import { app, BrowserWindow, globalShortcut, net, protocol } from 'electron'
 
 import { cachedFilePath, type ArtworkType } from './artwork/artworkCache'
 import { detectGames, refreshEpicUpdates } from './games'
+import { isMonitoring } from './gameMonitor'
 import { registerIpcHandlers } from './ipc/handlers'
 import { createTray, destroyTray } from './tray'
 import { checkForUpdatesOnFocus, initAutoUpdater } from './updater'
@@ -22,6 +23,17 @@ import {
  */
 const SUMMON_HOTKEY = 'Control+Alt+H'
 
+/**
+ * Alterna HanDeck, PERO no mientras hay un juego corriendo: traer el launcher
+ * encima de un juego en pantalla completa rompe su fullscreen (y al ocultarlo se
+ * minimizaría el juego). Durante un juego el botón no hace nada; HanDeck vuelve
+ * solo al cerrarse el juego.
+ */
+function toggleUnlessInGame(): void {
+  if (isMonitoring()) return
+  toggleWindow()
+}
+
 // Instancia única: si ya hay una corriendo, la segunda invocación (p.ej. al
 // pulsar un botón que lanza el .exe) sólo trae al frente la existente.
 const gotLock = app.requestSingleInstanceLock()
@@ -29,7 +41,7 @@ if (!gotLock) {
   app.quit()
 }
 
-app.on('second-instance', () => toggleWindow())
+app.on('second-instance', () => toggleUnlessInGame())
 
 /**
  * Entry point del main process de Electron.
@@ -110,7 +122,7 @@ app.whenReady().then(() => {
   })
 
   // Atajo global para alternar el launcher (mapea un botón a esta tecla).
-  globalShortcut.register(SUMMON_HOTKEY, toggleWindow)
+  globalShortcut.register(SUMMON_HOTKEY, toggleUnlessInGame)
 
   app.on('activate', () => {
     // En macOS es habitual recrear la ventana al reactivar la app.
