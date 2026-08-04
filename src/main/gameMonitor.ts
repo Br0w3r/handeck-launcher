@@ -4,15 +4,16 @@ import { getMainWindow, hideWindow, showWindow } from './windowManager'
 
 /**
  * Ciclo de vida del juego:
- *   1. Tras lanzar, esperar a que el proceso del juego aparezca (ps-list).
- *   2. ESCONDER la ventana (a la bandeja) — la MISMA instancia queda viva en
- *      segundo plano; no se destruye ni se recrea (evita ventanas duplicadas y
- *      recargar la app "de 0").
- *   3. Polling cada 5s hasta que el proceso desaparece.
- *   4. MOSTRAR de nuevo la misma ventana y avisar al renderer (game:closed).
+ *   1. ESCONDER la ventana de inmediato — así HanDeck cede el primer plano y el
+ *      juego (y su anti-cheat) puede tomar el foco. Si HanDeck siguiera al frente
+ *      cuando el juego intenta enfocarse, Windows bloquea el cambio de foco y el
+ *      juego queda detrás (habría que hacer clic para traerlo).
+ *   2. Esperar a que el juego arranque (algún proceso bajo su carpeta).
+ *   3. Esperar a que cierre del todo (con margen para el relevo del anti-cheat).
+ *   4. MOSTRAR de nuevo la misma ventana (sin recargar) y avisar (game:closed).
  *
- * Si el proceso no se detecta en el timeout, NO se esconde la ventana (para no
- * dejar al usuario sin launcher), y el flujo termina sin cambios.
+ * Se esconde/muestra la MISMA instancia (no se destruye/recrea) para evitar
+ * ventanas duplicadas y recargar la app "de 0".
  */
 
 let monitoring = false
@@ -25,23 +26,23 @@ export function isMonitoring(): boolean {
 export async function startGameLifecycle(game: Game): Promise<void> {
   if (monitoring) return
   monitoring = true
+
+  // 1. Ceder el primer plano YA (antes de que el juego intente enfocarse).
+  hideWindow()
+
   try {
-    // 1. Esperar a que el juego arranque (algún proceso bajo su carpeta).
+    // 2. Esperar a que el juego arranque (algún proceso bajo su carpeta).
     const started = await waitForGameStart(game)
-    if (!started) {
+    if (started) {
+      console.log(`[monitor] "${game.title}" corriendo.`)
+      // 3. Esperar a que cierre del todo (tolera el relevo del anti-cheat).
+      await waitForGameExit(game)
+      console.log(`[monitor] "${game.title}" cerrado; mostrando de nuevo HanDeck.`)
+    } else {
       console.warn(
-        `[monitor] No se detectó el proceso de "${game.title}"; se mantiene la ventana.`
+        `[monitor] No se detectó el proceso de "${game.title}"; se vuelve a mostrar HanDeck.`
       )
-      return
     }
-    console.log(`[monitor] "${game.title}" corriendo.`)
-
-    // 2. Esconder la ventana (misma instancia, en segundo plano).
-    hideWindow()
-
-    // 3. Esperar a que el juego cierre del todo (tolera el relevo del anti-cheat).
-    await waitForGameExit(game)
-    console.log(`[monitor] "${game.title}" cerrado; mostrando de nuevo HanDeck.`)
   } finally {
     monitoring = false
   }
